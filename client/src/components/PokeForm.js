@@ -1,20 +1,15 @@
 import React, { useEffect, useState } from 'react'
 import axios from 'axios';
 
-
-
-function getRandomInt(max) {
-    return Math.floor(Math.random() * max);
-}
-
-
-
-
 const PokeForm = () => {
     const [pokeName, setPokeName] = useState("")
     const [pokeImg, setPokeImg] = useState("")
+    let pokeList = []
     let gameVer = [0]
     
+    function getRandomInt(max) {
+        return Math.floor(Math.random() * max);
+    }
     
     function unselect(e){
         if(e !== "0"){
@@ -29,17 +24,16 @@ const PokeForm = () => {
         }
         }
     
-
-    useEffect(() => {
-        let pokenumber = getRandomInt(1010)
-        axios.get("https://pokeapi.co/api/v2/pokemon/" + pokenumber)
-            .then(function (response) {
-                setPokeImg(response.data.sprites.front_default);
-                setPokeName(response.data.name);
-                console.log("initial",gameVer)
-            })
-            .catch(err => console.log(err))
-    }, []);
+    // useEffect(() => {
+    //     let pokenumber = getRandomInt(1010)
+    //     axios.get("https://pokeapi.co/api/v2/pokemon/" + pokenumber)
+    //         .then(function (response) {
+    //             setPokeImg(response.data.sprites.front_default);
+    //             setPokeName(response.data.name);
+    //             console.log("initial",gameVer)
+    //         })
+    //         .catch(err => console.log(err))
+    // }, []);
 
     function gameVersion(num){
         let x = Number(num)
@@ -73,9 +67,48 @@ const PokeForm = () => {
     }
     function newGame(e){
         e.preventDefault()
-        //console.log(gameVer)
-    }
+        console.log(gameVer)
+        if(gameVer[0]===0){
+        axios.get("https://pokeapi.co/api/v2/pokemon?limit=100000&offset=0")
+            .then(function (response) {
+                let max = getRandomInt(1007)
+                let poke = response.data.results[max]
+                //console.log(poke.url)
+                axios.get(poke.url)
+                    .then(function (res){
+                        setPokeImg(res.data.sprites.front_default);
+                        setPokeName(res.data.name);
+                        
+                    })
+            })
+            .catch(err => console.log(err))
+    }else{
+        e.preventDefault()
+        gameVer.forEach(n => axios.get("https://pokeapi.co/api/v2/generation/"+n)
+        .then(function (response){
+            //console.log(response.data.pokemon_species)
+            response.data.pokemon_species.forEach(y => pokeList.push(y))
+            //console.log(pokeList)
+            //console.log("the entire list",pokeList.length)
+            let max = getRandomInt(pokeList.length-1)
+            let poke = (pokeList[max])
+            axios.get(poke.url)
+                .then(function(res){
+                    let url = res.data.varieties[0].pokemon.url
+                    axios.get(url)
+                    .then(function(res){
+                        setPokeImg(res.data.sprites.front_default);
+                        setPokeName(res.data.name)
+                        })
+                })
+        }))
 
+    }
+    document.getElementById("choose").disabled = true;
+}
+    function reset(){
+        window.location.reload()
+    }
     return (
         <div>
             <div>
@@ -112,11 +145,14 @@ const PokeForm = () => {
                     <label htmlFor="gen9" value="gen9">Gen9</label>
                     <input type='checkbox' id='gen9' value="9" name='gen' />
 
-                    <input type="submit" />
+                    <button type="submit" value="Submit" id='choose'> New Pokemon!</button>
                 </form>
             </div>
+            <div>
             <h2>The Current Pokemon is: {pokeName}</h2>
             <img src={pokeImg} alt={pokeName} />
+            </div>
+            <button onClick={reset}>Reset</button>
         </div>
     )
 }
